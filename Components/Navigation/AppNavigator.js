@@ -5,6 +5,7 @@ import StartScreen from '../Screens/StartScreen';
 import OnboardScreen from '../Screens/OnboardScreen';
 import LoginScreen from '../Screens/LoginScreen';
 import BottomTabs from './BottomTabs';
+import DetailsScreen from '../Screens/DetailsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -15,6 +16,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Start" component={StartScreen} />
         <Stack.Screen name="Onboard" component={OnboardScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Detail" component={DetailsScreen} />
         <Stack.Screen name="HomeTabs" component={BottomTabs} />
       </Stack.Navigator>
     </NavigationContainer>
