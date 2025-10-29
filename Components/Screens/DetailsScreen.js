@@ -7,7 +7,7 @@ import {
   TextInput,
   ScrollView,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";   // ✅ Correct Icon Import
+import { Ionicons } from "@expo/vector-icons";  
 import { wp, hp } from "../../Utils/Common";
 
 export default function DetailScreen({ navigation }) {
@@ -42,7 +42,7 @@ export default function DetailScreen({ navigation }) {
         <View style={styles.inputWrapper}>
           <TextInput
             style={styles.input}
-            placeholder="Maya Anderson"
+            placeholder="Enter Your Full name"
             value={name}
             onChangeText={setName}
           />
@@ -69,7 +69,7 @@ export default function DetailScreen({ navigation }) {
         <View style={styles.inputWrapper}>
           <TextInput
             style={styles.input}
-            placeholder="maya.anderson@example.com"
+            placeholder="Enter Your mail id"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"

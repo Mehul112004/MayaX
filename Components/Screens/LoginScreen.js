@@ -1,12 +1,13 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";   // ✅ Correct Icon Library
+import {
+  MaterialCommunityIcons} from "@expo/vector-icons";
 import { wp, hp } from "../../Utils/Common";
 
 export default function LoginScreen({ navigation }) {
   return (
     <View style={styles.container}>
-      {/* Background Image */}
+     
       <Image
         source={require("../../assets/Living room design.jpeg")}
         style={styles.bgImage}
@@ -22,18 +23,18 @@ export default function LoginScreen({ navigation }) {
 
       {/* Bottom Section */}
       <View style={styles.bottomContainer}>
-        
         {/* Google Sign In */}
         <TouchableOpacity
           style={styles.googleBtn}
           onPress={() => navigation.navigate("Detail")}
         >
-          <MaterialIcons
+          <MaterialCommunityIcons
             name="google"
             size={wp(6)}
             color="#DB4437"
             style={{ marginRight: wp(2) }}
           />
+
           <Text style={styles.btnText}>Sign in with Google</Text>
         </TouchableOpacity>
 
@@ -48,7 +49,6 @@ export default function LoginScreen({ navigation }) {
     </View>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {
