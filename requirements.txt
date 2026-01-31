@@ -1,0 +1,18 @@
+# --- Core AI Logic ---
+transformers
+diffusers
+accelerate
+huggingface_hub
+safetensors
+tqdm
+scipy
+
+# --- Image Processing ---
+opencv-python
+numpy
+pillow
+
+# --- Backend API ---
+flask
+flask-cors
+python-dotenv
