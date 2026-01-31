@@ -2,7 +2,7 @@ import os
 import requests
 from tqdm import tqdm
 
-UNSPLASH_ACCESS_KEY = "5Fb26uhknsh91HskTUhnfLUery2weDJGINg2pfh8_RU"  
+UNSPLASH_ACCESS_KEY = "ACCESS_KEY"  
 
 STYLES = {
     "modern_indian": "Modern Indian Interior Design Living Room",

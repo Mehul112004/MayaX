@@ -2,7 +2,7 @@ import os
 import requests
 from tqdm import tqdm
 
-PEXELS_API_KEY = "GGEAmx64twsOnDd5KWYtJpepcaPotsHBmq3SVV3gEFZV3Z1O7KlqFUql" 
+PEXELS_API_KEY = "ACCESS_KEY" 
 
 STYLES = {
     "modern_indian": "Modern Indian Interior Design Living Room",
