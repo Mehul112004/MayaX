@@ -27,7 +27,9 @@ export default function BottomTabs() {
             iconName = "person-outline";
           }
 
-          return <Ionicons name={iconName} size={size ? size : 24} color={color} />;
+          return (
+            <Ionicons name={iconName} size={size ? size : 24} color={color} />
+          );
         },
         tabBarActiveTintColor: "#fff",
         tabBarInactiveTintColor: "rgba(255,255,255,0.6)",
