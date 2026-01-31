@@ -40,44 +40,33 @@ yarn-error.*
 /ios
 /android
 
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# --- Python ---
+__pycache__/
+*.py[cod]
+venv/
+env/
+.env
+.ipynb_checkpoints/
 
-# dependencies
+# --- Conda ---
+/miniconda3
+/anaconda3
+
+# --- Node.js / React Native ---
 node_modules/
-
-# Expo
+npm-debug.log
 .expo/
 dist/
-web-build/
-expo-env.d.ts
 
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
+# --- Large AI Files (Don't upload these!) ---
+*.safetensors
+*.pth
+*.ckpt
+*.bin
+/models/
+/datasets/
+/backend/static/results/
 
-# Metro
-.metro-health-check*
-
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# macOS
+# --- OS Specific ---
 .DS_Store
-*.pem
-
-# local env files
-.env*.local
-
-# typescript
-*.tsbuildinfo
-
-# generated native folders
-/ios
-/android
+Thumbs.db
