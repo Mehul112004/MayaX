@@ -1,5 +1,10 @@
 import AppNavigator from './Components/Navigation/AppNavigator'
+import { DesignProvider } from './Context/DesignContext';
 
 export default function App() {
-  return <AppNavigator />;
+  return (
+    <DesignProvider>
+      <AppNavigator />
+    </DesignProvider>
+  );
 }
