@@ -4,11 +4,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { wp, hp } from "../../Utils/Common";
 
 export default function StartScreen({ navigation }) {
-  const indicator = useRef(new Animated.Value(0)).current; // ✅ Correct initialization
-
+  const indicator = useRef(new Animated.Value(0)).current; 
   useEffect(() => {
     Animated.timing(indicator, {
-      toValue: wp(30), // ✅ Fill full track width
+      toValue: wp(30),
       duration: 2000,
       useNativeDriver: false,
     }).start(() => navigation.replace("Onboard"));

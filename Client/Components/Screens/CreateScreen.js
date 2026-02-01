@@ -20,6 +20,27 @@ const CreateScreen = () => {
     SpaceType: null,
   });
 
+  useLayoutEffect(() => {
+    if (step === 'camera' || step === 'result_fullscreen') {
+      navigation.setOptions({
+        tabBarStyle: { display: 'none' },
+      });
+    } else {
+      navigation.setOptions({
+        tabBarStyle: {
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 70,
+          backgroundColor: "#2e2a2aff",
+          borderTopWidth: 0,
+          elevation: 0,
+        },
+      });
+    }
+  }, [navigation, step]);
+
 
   const toggleSection = (section) => {
     setExpandedSection(expandedSection === section ? null : section);
@@ -86,7 +107,10 @@ const CreateScreen = () => {
           </View>
 
           {/* Edit Button */}
-          <TouchableOpacity style={[styles.saveButton, { width: '80%', alignSelf: 'center' }]}>
+          <TouchableOpacity
+            style={[styles.saveButton, { width: '80%', alignSelf: 'center' }]}
+            onPress={() => navigation.navigate('EditScreen')}
+          >
             <Text style={styles.saveButtonText}>Edit</Text>
           </TouchableOpacity>
 
