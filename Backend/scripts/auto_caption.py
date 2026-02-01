@@ -4,16 +4,15 @@ import requests
 import json
 from tqdm import tqdm
 
-IMAGE_ROOT_DIR = "../training_data/img" 
+IMAGE_ROOT_DIR = "../training_data/images" 
 OLLAMA_API_URL = "http://localhost:11434/api/generate"
 MODEL_NAME = "llava:13b"
 
 STYLE_MAPPING = {
-    "10_modern_indian": "modern_indian style",
-    "10_scandinavian": "scandinavian style",
-    "10_industrial": "industrial style",
     "10_bohemian": "bohemian style",
-    "10_luxury": "luxury_contemporary style"
+    # "10_modern_indian": "modern_indian style",
+    # "10_luxury": "luxury_contemporary style"
+    # "10_scandinavian": "scandinavian style",
 }
 
 def encode_image(image_path):
