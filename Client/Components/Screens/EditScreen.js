@@ -43,7 +43,10 @@ const EditScreen = () => {
                     <Ionicons name="close" size={28} color="#fff" />
                 </TouchableOpacity>
                 <View style={styles.headerActions}>
-                    <TouchableOpacity style={styles.actionButton}>
+                    <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => navigation.navigate('SaveImageScreen', { image: selectedOption?.image })}
+                    >
                         <Ionicons name="download-outline" size={24} color="#fff" />
                     </TouchableOpacity>
                 </View>

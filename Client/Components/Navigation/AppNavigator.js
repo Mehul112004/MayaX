@@ -7,6 +7,8 @@ import LoginScreen from '../Screens/LoginScreen';
 import BottomTabs from './BottomTabs';
 import DetailsScreen from '../Screens/DetailsScreen';
 import EditScreen from '../Screens/EditScreen';
+import SaveImageScreen from '../Screens/SaveImageScreen';
+import SimilarDesignScreen from '../Screens/SimilarDesignScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -20,6 +22,8 @@ export default function AppNavigator() {
         <Stack.Screen name="Detail" component={DetailsScreen} />
         <Stack.Screen name="HomeTabs" component={BottomTabs} />
         <Stack.Screen name="EditScreen" component={EditScreen} />
+        <Stack.Screen name="SaveImageScreen" component={SaveImageScreen} />
+        <Stack.Screen name="SimilarDesignScreen" component={SimilarDesignScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

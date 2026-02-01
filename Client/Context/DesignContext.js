@@ -33,8 +33,15 @@ export const DesignProvider = ({ children }) => {
         { id: '5', image: 'https://images.unsplash.com/photo-1617103996702-96ff29b1c467?q=80&w=2000&auto=format&fit=crop', name: 'Industrial' },
     ];
 
+    const mockSimilarDesigns = [
+        { id: '101', image: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?q=80&w=2000&auto=format&fit=crop', title: 'Modern Living', price: '$1200' },
+        { id: '102', image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?q=80&w=2000&auto=format&fit=crop', title: 'Cozy Corner', price: '$850' },
+        { id: '103', image: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?q=80&w=2000&auto=format&fit=crop', title: 'Elegant Space', price: '$2100' },
+        { id: '104', image: 'https://images.unsplash.com/photo-1600607687644-c7171b42498b?q=80&w=2000&auto=format&fit=crop', title: 'Minimalist', price: '$950' },
+    ];
+
     return (
-        <DesignContext.Provider value={{ designs, loading, error, mockEditOptions }}>
+        <DesignContext.Provider value={{ designs, loading, error, mockEditOptions, mockSimilarDesigns }}>
             {children}
         </DesignContext.Provider>
     );
