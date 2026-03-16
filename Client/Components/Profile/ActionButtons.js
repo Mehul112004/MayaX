@@ -1,10 +1,16 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 const ActionButtons = () => {
+    const navigation = useNavigation();
+
     return (
         <View style={styles.container}>
-            <TouchableOpacity style={styles.button}>
+            <TouchableOpacity
+                style={styles.button}
+                onPress={() => navigation.navigate('EditProfile')}
+            >
                 <Text style={styles.text}>Edit Profile</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.button}>
