@@ -1,10 +1,11 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
-import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { View, TouchableOpacity } from "react-native";
 
 import HomeScreen from "../Screens/HomeScreen";
 import CreateScreen from "../Screens/CreateScreen";
 import ProfileScreen from "../Screens/ProfileScreen";
+import { Airplay } from "lucide-react-native";
 
 const Tab = createBottomTabNavigator();
 
@@ -25,6 +26,11 @@ const CustomTabBarButton = ({ children, onPress }) => (
         backgroundColor: "#ffffff",
         justifyContent: "center",
         alignItems: "center",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+        elevation: 5,
       }}
     >
       {children}
@@ -35,7 +41,7 @@ const CustomTabBarButton = ({ children, onPress }) => (
 export default function BottomTabs() {
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
+      screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
         tabBarStyle: {
@@ -44,41 +50,25 @@ export default function BottomTabs() {
           left: 0,
           right: 0,
           height: 70,
-          backgroundColor: "#2e2a2aff", // Dark charcoal background
+          backgroundColor: "#2e2a2aff",
           borderTopWidth: 0,
           elevation: 0,
         },
-        tabBarIcon: ({ focused }) => {
-          let iconName;
-
-          if (route.name === "Home") {
-            iconName = "home-outline";
-          } else if (route.name === "Profile") {
-            iconName = "person-outline";
-          }
-
-          return (
-            <View
-              style={{
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: focused ? "#4a5568" : "transparent", // Rounded pill background
-                paddingHorizontal: 20,
-                paddingVertical: 10,
-                borderRadius: 20,
-              }}
-            >
-              <Ionicons
-                name={iconName}
-                size={26}
-                color="#f0e5e5ff" 
-              />
-            </View>
-          );
-        },
-      })}
+      }}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name={focused ? "home" : "home-outline"}
+              size={26}
+              color="#f0e5e5ff"
+            />
+          ),
+        }}
+      />
 
       <Tab.Screen
         name="Create"
@@ -91,9 +81,19 @@ export default function BottomTabs() {
         }}
       />
 
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name={focused ? "person" : "person-outline"}
+              size={26}
+              color="#f0e5e5ff"
+            />
+          ),
+        }}
+      />
     </Tab.Navigator>
   );
 }
-
-const styles = StyleSheet.create({});

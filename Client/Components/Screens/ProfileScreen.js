@@ -65,7 +65,7 @@ const ProfileContent = () => {
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
         <ProfileHeader profile={profile} />
-        <ProfileStats stats={profile.stats} />
+        <ProfileStats stats={profile?.stats} />
         <ActionButtons />
 
         <ProfileTabs activeTab={activeTab} onTabChange={handleTabPress} />
@@ -81,10 +81,10 @@ const ProfileContent = () => {
           style={{ width: width }}
         >
           <View style={{ width: width }}>
-            <ImageGrid images={profile.projects} />
+            <ImageGrid images={profile?.projects || []} />
           </View>
           <View style={{ width: width }}>
-            <ImageGrid images={profile.inspirations} />
+            <ImageGrid images={profile?.inspirations || []} />
           </View>
         </ScrollView>
 

@@ -23,26 +23,26 @@ const pickColor = (name) => {
 };
 
 const ProfileHeader = ({ profile }) => {
-    const hasAvatar = profile.avatar_url && !profile.avatar_url.includes('undefined');
+    const hasAvatar = profile?.avatar_url && !profile?.avatar_url?.includes('undefined');
 
     return (
         <View style={styles.container}>
             <View style={styles.topRow}>
-                <Text style={styles.handle}>{profile.email || profile.handle || ''}</Text>
+                <Text style={styles.handle}>{profile?.email || profile?.handle || ''}</Text>
                 <Ionicons name="ellipsis-horizontal" size={24} color="#333" />
             </View>
 
             <View style={styles.profileInfo}>
                 {hasAvatar ? (
-                    <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+                    <Image source={{ uri: profile?.avatar_url }} style={styles.avatar} />
                 ) : (
-                    <View style={[styles.avatar, styles.initialsAvatar, { backgroundColor: pickColor(profile.name) }]}>
-                        <Text style={styles.initialsText}>{getInitials(profile.name)}</Text>
+                    <View style={[styles.avatar, styles.initialsAvatar, { backgroundColor: pickColor(profile?.name) }]}>
+                        <Text style={styles.initialsText}>{getInitials(profile?.name)}</Text>
                     </View>
                 )}
                 <View style={styles.textContainer}>
-                    <Text style={styles.name}>{profile.name || 'User'}</Text>
-                    <Text style={styles.bio}>{profile.bio || profile.email || ''}</Text>
+                    <Text style={styles.name}>{profile?.name || 'User'}</Text>
+                    <Text style={styles.bio}>{profile?.bio || profile?.email || ''}</Text>
                 </View>
             </View>
         </View>
