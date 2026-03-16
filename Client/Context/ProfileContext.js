@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { getProfile } from '../Services/authService';
 import { useAuth } from './AuthContext';
 
@@ -9,31 +9,44 @@ export const ProfileProvider = ({ children }) => {
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const hasFetched = useRef(false);
 
-    const loadProfile = useCallback(async () => {
-        if (!isAuthenticated || !isOnboarded) {
-            setLoading(false);
-            return;
-        }
+    // Initial load — shows loading spinner
+    useEffect(() => {
+        const initialLoad = async () => {
+            if (!isAuthenticated || !isOnboarded) {
+                setLoading(false);
+                return;
+            }
+
+            try {
+                setLoading(true);
+                setError(null);
+                const response = await getProfile();
+                setProfile(response.user);
+                hasFetched.current = true;
+            } catch (err) {
+                setError(err);
+                console.error("Failed to fetch profile", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        initialLoad();
+    }, [isAuthenticated, isOnboarded]);
+
+    // Silent refresh — does NOT set loading, so no re-render loop
+    const refreshProfile = useCallback(async () => {
+        if (!isAuthenticated || !isOnboarded) return;
 
         try {
-            setLoading(true);
-            setError(null);
             const response = await getProfile();
             setProfile(response.user);
         } catch (err) {
-            setError(err);
-            console.error("Failed to fetch profile", err);
-        } finally {
-            setLoading(false);
+            console.error("Failed to refresh profile", err);
         }
     }, [isAuthenticated, isOnboarded]);
-
-    useEffect(() => {
-        loadProfile();
-    }, [loadProfile]);
-
-    const refreshProfile = () => loadProfile();
 
     return (
         <ProfileContext.Provider value={{ profile, loading, error, refreshProfile }}>

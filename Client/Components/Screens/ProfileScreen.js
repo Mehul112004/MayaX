@@ -1,20 +1,28 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, SafeAreaView, ActivityIndicator, Dimensions } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
-import { ProfileProvider, useProfile } from '../../Context/ProfileContext';
+import React, { useState, useRef, useCallback } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  SafeAreaView,
+  ActivityIndicator,
+  Dimensions,
+} from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { ProfileProvider, useProfile } from "../../Context/ProfileContext";
 
 // Components
-import ProfileHeader from '../Profile/ProfileHeader';
-import ProfileStats from '../Profile/ProfileStats';
-import ActionButtons from '../Profile/ActionButtons';
-import ProfileTabs from '../Profile/ProfileTabs';
-import ImageGrid from '../Profile/ImageGrid';
+import ProfileHeader from "../Profile/ProfileHeader";
+import ProfileStats from "../Profile/ProfileStats";
+import ActionButtons from "../Profile/ActionButtons";
+import ProfileTabs from "../Profile/ProfileTabs";
+import ImageGrid from "../Profile/ImageGrid";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 const ProfileContent = () => {
   const { profile, loading, error, refreshProfile } = useProfile();
-  const [activeTab, setActiveTab] = useState('Projects');
+  const [activeTab, setActiveTab] = useState("Projects");
   const scrollViewRef = useRef(null);
 
   // Refresh profile when screen comes into focus (e.g. after editing)
@@ -46,7 +54,7 @@ const ProfileContent = () => {
     setActiveTab(tabName);
     if (scrollViewRef.current) {
       scrollViewRef.current.scrollTo({
-        x: tabName === 'Projects' ? 0 : width,
+        x: tabName === "Projects" ? 0 : width,
         animated: true,
       });
     }
@@ -55,7 +63,7 @@ const ProfileContent = () => {
   const handleScroll = (event) => {
     const scrollX = event.nativeEvent.contentOffset.x;
     const index = Math.round(scrollX / width);
-    const newTab = index === 0 ? 'Projects' : 'Inspirations';
+    const newTab = index === 0 ? "Projects" : "Inspirations";
     if (newTab !== activeTab) {
       setActiveTab(newTab);
     }
@@ -63,7 +71,10 @@ const ProfileContent = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled={true}
+      >
         <ProfileHeader profile={profile} />
         <ProfileStats stats={profile?.stats} />
         <ActionButtons />
@@ -106,13 +117,13 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   centered: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
   },
 });
 
