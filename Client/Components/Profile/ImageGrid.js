@@ -8,9 +8,9 @@ const ITEM_SIZE = width / COLUMN_COUNT;
 const ImageGrid = ({ images }) => {
     return (
         <View style={styles.container}>
-            {images.map((item) => (
-                <View key={item.id} style={styles.imageContainer}>
-                    <Image source={{ uri: item.image }} style={styles.image} />
+            {(images || []).map((item) => (
+                <View key={item?.id} style={styles.imageContainer}>
+                    <Image source={{ uri: item?.image }} style={styles.image} />
                 </View>
             ))}
         </View>
