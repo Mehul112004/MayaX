@@ -16,3 +16,8 @@ pillow
 flask
 flask-cors
 python-dotenv
+
+# --- Database & Auth ---
+supabase
+PyJWT
+bcrypt

@@ -16,32 +16,40 @@ import { Ionicons } from "@expo/vector-icons";
 import { wp, hp } from "../../Utils/Common";
 import { useAuth } from "../../Context/AuthContext";
 
-export default function LoginScreen({ navigation }) {
-  const { signIn } = useAuth();
+export default function SignUpScreen({ navigation }) {
+  const { register } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
+  const handleSignUp = async () => {
     if (!email.trim() || !password) {
-      Alert.alert("Missing Fields", "Please enter both email and password.");
+      Alert.alert("Missing Fields", "Please fill in all fields.");
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert("Weak Password", "Password must be at least 6 characters.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert("Mismatch", "Passwords do not match.");
       return;
     }
 
     try {
       setLoading(true);
-      const result = await signIn(email.trim(), password);
+      await register(email.trim(), password);
 
-      if (!result.user.is_onboarded) {
-        navigation.reset({ index: 0, routes: [{ name: "CompleteProfile" }] });
-      } else {
-        navigation.reset({ index: 0, routes: [{ name: "HomeTabs" }] });
-      }
+      // New users always go to CompleteProfile
+      navigation.reset({ index: 0, routes: [{ name: "CompleteProfile" }] });
     } catch (error) {
       const msg =
-        error.response?.data?.error || "Could not sign in. Please try again.";
-      Alert.alert("Sign In Failed", msg);
+        error.response?.data?.error || "Could not create account. Please try again.";
+      Alert.alert("Sign Up Failed", msg);
     } finally {
       setLoading(false);
     }
@@ -54,7 +62,6 @@ export default function LoginScreen({ navigation }) {
         style={styles.bgImage}
       />
 
-      {/* Dark overlay for readability */}
       <View style={styles.overlay} />
 
       <KeyboardAvoidingView
@@ -75,7 +82,7 @@ export default function LoginScreen({ navigation }) {
 
           {/* Form Card */}
           <View style={styles.formCard}>
-            <Text style={styles.formTitle}>Welcome Back</Text>
+            <Text style={styles.formTitle}>Create Account</Text>
 
             <View style={styles.inputContainer}>
               <Ionicons
@@ -107,7 +114,7 @@ export default function LoginScreen({ navigation }) {
                 style={styles.input}
                 value={password}
                 onChangeText={setPassword}
-                placeholder="Password"
+                placeholder="Password (min. 6 characters)"
                 placeholderTextColor="#999"
                 secureTextEntry={!showPassword}
               />
@@ -123,35 +130,44 @@ export default function LoginScreen({ navigation }) {
               </TouchableOpacity>
             </View>
 
+            <View style={styles.inputContainer}>
+              <Ionicons
+                name="lock-closed-outline"
+                size={20}
+                color="#888"
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={styles.input}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholder="Confirm password"
+                placeholderTextColor="#999"
+                secureTextEntry={!showPassword}
+              />
+            </View>
+
             <TouchableOpacity
-              style={[styles.loginBtn, loading && styles.loginBtnDisabled]}
-              onPress={handleLogin}
+              style={[styles.signupBtn, loading && styles.signupBtnDisabled]}
+              onPress={handleSignUp}
               disabled={loading}
               activeOpacity={0.8}
             >
               {loading ? (
                 <ActivityIndicator size="small" color="white" />
               ) : (
-                <Text style={styles.loginBtnText}>Sign In</Text>
+                <Text style={styles.signupBtnText}>Create Account</Text>
               )}
             </TouchableOpacity>
 
-            {/* Sign Up Link */}
-            <View style={styles.signupRow}>
-              <Text style={styles.signupText}>Don't have an account? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
-                <Text style={styles.signupLink}>Sign Up</Text>
+            {/* Login Link */}
+            <View style={styles.loginRow}>
+              <Text style={styles.loginText}>Already have an account? </Text>
+              <TouchableOpacity onPress={() => navigation.goBack()}>
+                <Text style={styles.loginLink}>Sign In</Text>
               </TouchableOpacity>
             </View>
           </View>
-
-          {/* Terms */}
-          <Text style={styles.policyText}>
-            By continuing, you agree to our
-            <Text style={styles.linkText}> Terms of Service </Text>
-            and
-            <Text style={styles.linkText}> Privacy Policy</Text>
-          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -198,7 +214,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.95)",
     borderRadius: 24,
     padding: wp(6),
-    marginBottom: hp(3),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
@@ -234,43 +249,33 @@ const styles = StyleSheet.create({
   eyeIcon: {
     padding: wp(1),
   },
-  loginBtn: {
-    backgroundColor: "#1a1a1a",
+  signupBtn: {
+    backgroundColor: "#A34E5D",
     paddingVertical: hp(2),
     borderRadius: 14,
     alignItems: "center",
     marginTop: hp(1),
   },
-  loginBtnDisabled: {
+  signupBtnDisabled: {
     opacity: 0.6,
   },
-  loginBtnText: {
+  signupBtnText: {
     color: "white",
     fontSize: wp(4.2),
     fontWeight: "600",
   },
-  signupRow: {
+  loginRow: {
     flexDirection: "row",
     justifyContent: "center",
     marginTop: hp(2),
   },
-  signupText: {
+  loginText: {
     fontSize: wp(3.5),
     color: "#666",
   },
-  signupLink: {
+  loginLink: {
     fontSize: wp(3.5),
     color: "#A34E5D",
     fontWeight: "600",
-  },
-  policyText: {
-    fontSize: wp(3),
-    color: "rgba(255,255,255,0.8)",
-    textAlign: "center",
-    width: wp(80),
-    alignSelf: "center",
-  },
-  linkText: {
-    textDecorationLine: "underline",
   },
 });

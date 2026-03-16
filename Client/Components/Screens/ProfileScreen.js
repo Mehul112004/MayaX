@@ -1,5 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, SafeAreaView, ActivityIndicator, Dimensions } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { ProfileProvider, useProfile } from '../../Context/ProfileContext';
 
 // Components
@@ -12,9 +13,16 @@ import ImageGrid from '../Profile/ImageGrid';
 const { width } = Dimensions.get('window');
 
 const ProfileContent = () => {
-  const { profile, loading, error } = useProfile();
+  const { profile, loading, error, refreshProfile } = useProfile();
   const [activeTab, setActiveTab] = useState('Projects');
   const scrollViewRef = useRef(null);
+
+  // Refresh profile when screen comes into focus (e.g. after editing)
+  useFocusEffect(
+    useCallback(() => {
+      refreshProfile();
+    }, [refreshProfile])
+  );
 
   if (loading) {
     return (

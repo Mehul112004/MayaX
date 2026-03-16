@@ -1,10 +1,13 @@
 import AppNavigator from './Components/Navigation/AppNavigator'
 import { DesignProvider } from './Context/DesignContext';
+import { AuthProvider } from './Context/AuthContext';
 
 export default function App() {
   return (
-    <DesignProvider>
-      <AppNavigator />
-    </DesignProvider>
+    <AuthProvider>
+      <DesignProvider>
+        <AppNavigator />
+      </DesignProvider>
+    </AuthProvider>
   );
 }
