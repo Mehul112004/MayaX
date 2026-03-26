@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { fetchDesigns } from '../Services/designService';
+import api from '../Services/api';
 
 const DesignContext = createContext();
 
@@ -12,7 +13,14 @@ export const DesignProvider = ({ children }) => {
         const loadDesigns = async () => {
             try {
                 setLoading(true);
-                const response = await fetchDesigns();
+                let response = await fetchDesigns();
+                
+                // Auto-seed if database is empty to ensure content is visible
+                if (response.data && response.data.length === 0) {
+                    await api.post('/design/seed');
+                    response = await fetchDesigns();
+                }
+
                 setDesigns(response.data);
             } catch (err) {
                 setError(err);

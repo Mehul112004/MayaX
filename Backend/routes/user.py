@@ -22,8 +22,8 @@ def _get_supabase():
 @require_auth
 def get_profile():
     """
-    Get the current user's profile.
-    Requires JWT Bearer token in Authorization header.
+    Get the current user's profile with computed stats.
+    Returns stats: { projects, inspirations }
     """
     supabase = _get_supabase()
     user_id = g.user_id
@@ -40,6 +40,30 @@ def get_profile():
 
     user = result.data[0]
     user.pop("password_hash", None)
+
+    # Count user's projects
+    projects_result = (
+        supabase.table("projects")
+        .select("id", count="exact")
+        .eq("user_id", user_id)
+        .execute()
+    )
+    projects_count = projects_result.count or 0
+
+    # Count user's inspirations (liked projects)
+    inspirations_result = (
+        supabase.table("inspirations")
+        .select("id", count="exact")
+        .eq("user_id", user_id)
+        .execute()
+    )
+    inspirations_count = inspirations_result.count or 0
+
+    user["stats"] = {
+        "projects": projects_count,
+        "inspirations": inspirations_count,
+    }
+
     return jsonify({"user": user}), 200
 
 
@@ -104,3 +128,130 @@ def update_profile():
         "message": "Profile updated successfully",
         "user": user,
     }), 200
+
+
+# ── Projects ──────────────────────────────────────────────
+
+@user_bp.route("/projects", methods=["GET"])
+@require_auth
+def get_projects():
+    """Get the current user's projects, newest first."""
+    supabase = _get_supabase()
+    user_id = g.user_id
+
+    result = (
+        supabase.table("projects")
+        .select("*, inspirations(count)")
+        .eq("user_id", user_id)
+        .order("created_at", desc=True)
+        .execute()
+    )
+
+    # Format output to lift count safely
+    projects = []
+    for row in result.data:
+        # Supabase returns related count as a list with a single dict: [{'count': X}]
+        raw_insp = row.pop("inspirations", [])
+        likes = raw_insp[0].get("count", 0) if len(raw_insp) > 0 else 0
+        
+        row["likes_count"] = likes
+        projects.append(row)
+
+    return jsonify({"data": projects}), 200
+
+
+# ── Inspirations (liked projects from other users) ───────
+
+@user_bp.route("/inspirations", methods=["GET"])
+@require_auth
+def get_inspirations():
+    """
+    Get projects liked/saved by the current user.
+    Returns the project data joined through the inspirations table.
+    """
+    supabase = _get_supabase()
+    user_id = g.user_id
+
+    result = (
+        supabase.table("inspirations")
+        .select("id, created_at, project:projects(id, title, description, image_url, room_type, style, user_id, created_at, inspirations(count))")
+        .eq("user_id", user_id)
+        .order("created_at", desc=True)
+        .execute()
+    )
+
+    inspirations_list = []
+    for row in result.data:
+        project_data = row.get("project", {})
+        if project_data:
+            raw_insp = project_data.pop("inspirations", [])
+            likes = raw_insp[0].get("count", 0) if len(raw_insp) > 0 else 0
+            project_data["likes_count"] = likes
+            
+        inspirations_list.append(row)
+
+    return jsonify({"data": inspirations_list}), 200
+
+
+@user_bp.route("/inspirations", methods=["POST"])
+@require_auth
+def save_inspiration():
+    """
+    Like/save a project as inspiration.
+    Expects JSON: { "project_id": "<uuid>" }
+    """
+    supabase = _get_supabase()
+    user_id = g.user_id
+
+    data = request.get_json() or {}
+    project_id = data.get("project_id")
+
+    if not project_id:
+        return jsonify({"error": "project_id is required"}), 400
+
+    # Don't allow users to like their own projects
+    project_check = (
+        supabase.table("projects")
+        .select("user_id")
+        .eq("id", project_id)
+        .execute()
+    )
+
+    if not project_check.data:
+        return jsonify({"error": "Project not found"}), 404
+
+    if project_check.data[0]["user_id"] == user_id:
+        return jsonify({"error": "Cannot like your own project"}), 400
+
+    try:
+        result = (
+            supabase.table("inspirations")
+            .insert({"user_id": user_id, "project_id": project_id})
+            .execute()
+        )
+        return jsonify({"message": "Inspiration saved", "data": result.data[0]}), 201
+    except Exception as e:
+        if "duplicate" in str(e).lower() or "unique" in str(e).lower():
+            return jsonify({"error": "Already saved as inspiration"}), 409
+        return jsonify({"error": str(e)}), 500
+
+
+@user_bp.route("/inspirations/<project_id>", methods=["DELETE"])
+@require_auth
+def remove_inspiration(project_id):
+    """Remove a project from the user's inspirations (unlike)."""
+    supabase = _get_supabase()
+    user_id = g.user_id
+
+    result = (
+        supabase.table("inspirations")
+        .delete()
+        .eq("user_id", user_id)
+        .eq("project_id", project_id)
+        .execute()
+    )
+
+    if not result.data:
+        return jsonify({"error": "Inspiration not found"}), 404
+
+    return jsonify({"message": "Inspiration removed"}), 200

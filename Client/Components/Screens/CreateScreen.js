@@ -1,24 +1,67 @@
-import React, { useState, useLayoutEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert, Image, Platform, UIManager } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import AccordionItem from '../Create/AccordionItem';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 
-const DATA = {
-  Colors: ['Minimal & Calm', 'Bold & Vibrant', 'Elegant & Dark'],
-  Aesthetics: ['Minimal', 'Modern & Classic', 'Royal & Heritage'],
-  SpaceType: ['Bedroom', 'Living Room', 'Kitchen']
-};
+import AccordionItem from '../Create/AccordionItem';
+import { getPreferenceCategories } from '../../Services/preferencesService';
+
+if (Platform.OS === 'android') {
+    if (UIManager.setLayoutAnimationEnabledExperimental) {
+        UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
+}
 
 const CreateScreen = () => {
   const navigation = useNavigation();
-  const [step, setStep] = useState('form'); // 'form' | 'camera'
+  const isFocused = useIsFocused();
+  const [step, setStep] = useState('form'); // 'form' | 'camera' | 'result' | 'result_fullscreen'
   const [expandedSection, setExpandedSection] = useState(null);
-  const [preferences, setPreferences] = useState({
-    Colors: null,
-    Aesthetics: null,
-    SpaceType: null,
-  });
+  
+  const [categories, setCategories] = useState([]);
+  const [preferences, setPreferences] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  // Camera state
+  const [permission, requestPermission] = useCameraPermissions();
+  const cameraRef = useRef(null);
+  const [photoUri, setPhotoUri] = useState(null);
+
+  useEffect(() => {
+    const fetchPreferences = async () => {
+      try {
+        const data = await getPreferenceCategories();
+        
+        // Ensure options is parsed as an array if it isn't already (Supabase might return JSON string or array)
+        const parsedData = data.map(item => ({
+            ...item,
+            options: typeof item.options === 'string' ? JSON.parse(item.options) : item.options
+        }));
+
+        setCategories(parsedData);
+        
+        // Initialize preferences state based on fetched categories
+        const initialPrefs = {};
+        parsedData.forEach(cat => {
+            initialPrefs[cat.category_name] = null;
+        });
+        setPreferences(initialPrefs);
+        
+        // Auto expand first category
+        if (parsedData.length > 0) {
+            setExpandedSection(parsedData[0].category_name);
+        }
+      } catch (error) {
+        console.error("Failed to load generics preferences:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPreferences();
+  }, []);
 
   useLayoutEffect(() => {
     if (step === 'camera' || step === 'result_fullscreen') {
@@ -48,24 +91,73 @@ const CreateScreen = () => {
 
   const handleSelect = (section, value) => {
     setPreferences(prev => ({ ...prev, [section]: value }));
+    
+    // Auto-advance after showing the selection animation
+    setTimeout(() => {
+        const currentIndex = categories.findIndex(cat => cat.category_name === section);
+        if (currentIndex !== -1 && currentIndex < categories.length - 1) {
+            setExpandedSection(categories[currentIndex + 1].category_name);
+        } else {
+            setExpandedSection(null);
+        }
+    }, 450); // increased delay to enjoy the selection transition
   };
 
-  const isFormComplete = preferences.Colors && preferences.Aesthetics && preferences.SpaceType;
+  const isFormComplete = categories.length > 0 && categories.every(cat => preferences[cat.category_name] !== null);
+
+  const startCamera = async () => {
+    if (!permission?.granted) {
+      const { granted } = await requestPermission();
+      if (!granted) {
+        Alert.alert("Permission required", "Camera access is needed to continue.");
+        return;
+      }
+    }
+    setStep('camera');
+  };
+
+  const takePicture = async () => {
+    if (cameraRef.current) {
+      try {
+        const photo = await cameraRef.current.takePictureAsync({
+            quality: 1,
+            base64: false,
+        });
+        setPhotoUri(photo.uri);
+        setStep('result');
+      } catch (error) {
+        console.error("Failed to take picture:", error);
+      }
+    }
+  };
 
   if (step === 'camera') {
+    if (!permission?.granted) {
+      return (
+        <SafeAreaView style={styles.cameraContainer}>
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <Text style={{ color: '#fff' }}>No access to camera</Text>
+            </View>
+        </SafeAreaView>
+      );
+    }
     return (
       <SafeAreaView style={styles.cameraContainer}>
-        {/* Simulated Camera View */}
-        <View style={styles.cameraPreview}>
-          <Text style={styles.cameraText}>Camera Preview</Text>
-          <View style={styles.focusFrame} />
-        </View>
+        {isFocused && (
+            <CameraView 
+                style={styles.cameraPreview} 
+                facing="back"
+                ref={cameraRef}
+            >
+                <View style={styles.focusFrame} />
+            </CameraView>
+        )}
 
         {/* Camera Controls */}
         <View style={styles.cameraControls}>
           <TouchableOpacity
             style={styles.captureButton}
-            onPress={() => setStep('result')}
+            onPress={takePicture}
           >
             <View style={styles.captureInner} />
           </TouchableOpacity>
@@ -79,10 +171,9 @@ const CreateScreen = () => {
 
   if (step === 'result') {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.resultViewContainer}>
         <ScrollView contentContainerStyle={styles.content}>
-          {/* Header */}
-          <View style={styles.header}>
+          <View style={styles.headerResult}>
             <View style={styles.logoContainer}>
               <Text style={styles.logoText}>M<Text style={{ color: '#A34E5D' }}>X</Text></Text>
               <Text style={styles.logoSubtext}>DESIGN YOUR WAY</Text>
@@ -90,13 +181,14 @@ const CreateScreen = () => {
             <Text style={[styles.pageTitle, { textDecorationLine: 'underline' }]}>Your Spectacular Design...</Text>
           </View>
 
-          {/* Result Image */}
           <View style={styles.resultContainer}>
-            {/* Placeholder for the generated design - using a random interior image */}
-            <View style={styles.imagePlaceholder}>
-              {/* In a real app, this would be the Captured Image or API Result */}
-              <Text style={{ color: '#888' }}>Generated Design Preview</Text>
-            </View>
+            {photoUri ? (
+                <Image source={{ uri: photoUri }} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
+            ) : (
+                <View style={styles.imagePlaceholder}>
+                  <Text style={{ color: '#888' }}>Generated Design Preview</Text>
+                </View>
+            )}
 
             <TouchableOpacity
               style={styles.expandIcon}
@@ -106,14 +198,19 @@ const CreateScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Edit Button */}
           <TouchableOpacity
-            style={[styles.saveButton, { width: '80%', alignSelf: 'center' }]}
+            style={[styles.gradientButtonResult, { width: '80%', alignSelf: 'center' }]}
             onPress={() => navigation.navigate('EditScreen')}
           >
+            <LinearGradient
+                colors={['#A34E5D', '#D97385']}
+                style={StyleSheet.absoluteFill}
+                borderRadius={25}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+            />
             <Text style={styles.saveButtonText}>Edit</Text>
           </TouchableOpacity>
-
         </ScrollView>
       </SafeAreaView>
     );
@@ -122,9 +219,13 @@ const CreateScreen = () => {
   if (step === 'result_fullscreen') {
     return (
       <SafeAreaView style={styles.fullScreenContainer}>
-        <View style={styles.fullScreenImagePlaceholder}>
-          <Text style={{ color: '#888' }}>Full Screen Preview</Text>
-        </View>
+          {photoUri ? (
+              <Image source={{ uri: photoUri }} style={{ width: '100%', height: '100%', resizeMode: 'contain' }} />
+          ) : (
+            <View style={styles.fullScreenImagePlaceholder}>
+              <Text style={{ color: '#888' }}>Full Screen Preview</Text>
+            </View>
+          )}
 
         <TouchableOpacity
           style={styles.contractIcon}
@@ -139,50 +240,52 @@ const CreateScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>M<Text style={{ color: '#A34E5D' }}>X</Text></Text>
-            <Text style={styles.logoSubtext}>DESIGN YOUR WAY</Text>
+            <Text style={styles.logoTextDark}>M<Text style={{ color: '#D97385' }}>X</Text></Text>
+            <Text style={styles.logoSubtextDark}>DESIGN YOUR WAY</Text>
           </View>
-          <Text style={styles.pageTitle}>Tell us what you like...</Text>
+          <Text style={styles.pageTitleDark}>Configure Your Space</Text>
+          <Text style={styles.pageSubtitle}>Select your preferences below to personalize your design.</Text>
         </View>
 
-        {/* Form */}
         <View style={styles.formContainer}>
-          <AccordionItem
-            title="Colors"
-            options={DATA.Colors}
-            expanded={expandedSection === 'Colors'}
-            onToggle={() => toggleSection('Colors')}
-            onSelect={(val) => handleSelect('Colors', val)}
-            selectedValue={preferences.Colors}
-          />
-          <AccordionItem
-            title="Aesthetics"
-            options={DATA.Aesthetics}
-            expanded={expandedSection === 'Aesthetics'}
-            onToggle={() => toggleSection('Aesthetics')}
-            onSelect={(val) => handleSelect('Aesthetics', val)}
-            selectedValue={preferences.Aesthetics}
-          />
-          <AccordionItem
-            title="Space Type"
-            options={DATA.SpaceType}
-            expanded={expandedSection === 'SpaceType'}
-            onToggle={() => toggleSection('SpaceType')}
-            onSelect={(val) => handleSelect('SpaceType', val)}
-            selectedValue={preferences.SpaceType}
-          />
-
-          {/* Save Button */}
-          <TouchableOpacity
-            style={[styles.saveButton, !isFormComplete && styles.disabledButton]}
-            disabled={!isFormComplete}
-            onPress={() => setStep('camera')}
-          >
-            <Text style={styles.saveButtonText}>Save</Text>
-          </TouchableOpacity>
+            {loading ? (
+                <ActivityIndicator size="large" color="#D97385" style={{ marginTop: 50 }} />
+            ) : categories.length === 0 ? (
+                <Text style={{ color: '#888', textAlign: 'center', marginTop: 50 }}>No structured preferences found.</Text>
+            ) : (
+                <>
+                    {categories.map((cat, index) => (
+                        <AccordionItem
+                            key={cat.category_name}
+                            title={cat.display_label}
+                            iconName={cat.icon_name}
+                            options={cat.options || []}
+                            expanded={expandedSection === cat.category_name}
+                            onToggle={() => toggleSection(cat.category_name)}
+                            onSelect={(val) => handleSelect(cat.category_name, val)}
+                            selectedValue={preferences[cat.category_name]}
+                        />
+                    ))}
+                    
+                    <TouchableOpacity
+                        style={[styles.gradientButton, !isFormComplete && styles.disabledButton]}
+                        disabled={!isFormComplete}
+                        onPress={startCamera}
+                    >
+                        <LinearGradient
+                            colors={['#A34E5D', '#D97385']}
+                            style={StyleSheet.absoluteFill}
+                            borderRadius={25}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        />
+                        <Text style={styles.saveButtonText}>Continue to Camera</Text>
+                        <Ionicons name="arrow-forward" size={20} color="#fff" style={{ marginLeft: 8 }} />
+                    </TouchableOpacity>
+                </>
+            )}
         </View>
 
       </ScrollView>
@@ -193,12 +296,22 @@ const CreateScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#121212',
+  },
+  resultViewContainer: {
+    flex: 1,
+    backgroundColor: '#fff', 
   },
   content: {
-    paddingBottom: 100, // Space for nav bar
+    paddingBottom: 100, 
   },
   header: {
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 30,
+    paddingHorizontal: 20,
+  },
+  headerResult: {
     alignItems: 'center',
     marginTop: 20,
     marginBottom: 30,
@@ -218,20 +331,55 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#A34E5D',
   },
+  logoTextDark: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#fff',
+  },
+  logoSubtextDark: {
+    fontSize: 8,
+    letterSpacing: 2,
+    fontWeight: '600',
+    color: '#D97385',
+  },
   pageTitle: {
     fontSize: 22,
     fontWeight: '700',
     color: '#333',
   },
-  formContainer: {
-    paddingHorizontal: 30,
+  pageTitleDark: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 8,
   },
-  saveButton: {
-    backgroundColor: '#555',
+  pageSubtitle: {
+    fontSize: 14,
+    color: '#aaa',
+    textAlign: 'center',
+  },
+  formContainer: {
+    paddingHorizontal: 25,
+  },
+  gradientButton: {
     paddingVertical: 18,
     borderRadius: 25,
     alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 30,
+    flexDirection: 'row',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  gradientButtonResult: {
+    paddingVertical: 18,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 20,
+    flexDirection: 'row',
+    position: 'relative',
+    overflow: 'hidden',
   },
   disabledButton: {
     opacity: 0.5,
@@ -239,9 +387,9 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: '#fff',
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
+    zIndex: 1,
   },
-  // Camera Styles
   cameraContainer: {
     flex: 1,
     backgroundColor: 'black',
@@ -250,22 +398,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#222', // Placeholder grey
-    margin: 20,
+    marginHorizontal: 15,
+    marginTop: 20,
     borderRadius: 30,
-    borderWidth: 1,
-    borderColor: '#444'
-  },
-  cameraText: {
-    color: '#fff',
-    marginBottom: 20,
+    overflow: 'hidden',
   },
   focusFrame: {
     width: 250,
-    height: 250,
+    height: 350,
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: 'rgba(255,255,255,0.4)',
     borderStyle: 'dashed',
+    borderRadius: 20,
   },
   cameraControls: {
     height: 120,
@@ -278,7 +422,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(255,255,255,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -295,7 +439,6 @@ const styles = StyleSheet.create({
     right: 40,
     top: 40,
   },
-  // Result Screen Styles
   resultContainer: {
     height: 400,
     backgroundColor: '#f0f0f0',
@@ -325,6 +468,7 @@ const styles = StyleSheet.create({
   fullScreenContainer: {
     flex: 1,
     backgroundColor: 'black',
+    justifyContent: 'center',
   },
   fullScreenImagePlaceholder: {
     flex: 1,
@@ -341,6 +485,5 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   }
 });
-
 
 export default CreateScreen;

@@ -7,9 +7,11 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Dimensions,
+  Alert,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { ProfileProvider, useProfile } from "../../Context/ProfileContext";
+import { useAuth } from "../../Context/AuthContext";
 
 // Components
 import ProfileHeader from "../Profile/ProfileHeader";
@@ -21,6 +23,7 @@ import ImageGrid from "../Profile/ImageGrid";
 const { width } = Dimensions.get("window");
 
 const ProfileContent = () => {
+  const { signOut } = useAuth();
   const { profile, loading, error, refreshProfile } = useProfile();
   const [activeTab, setActiveTab] = useState("Projects");
   const scrollViewRef = useRef(null);
@@ -69,13 +72,24 @@ const ProfileContent = () => {
     }
   };
 
+  const handleLogoutPress = () => {
+    Alert.alert(
+      "Options",
+      "What would you like to do?",
+      [
+        { text: "Log Out", onPress: () => signOut(), style: "destructive" },
+        { text: "Cancel", style: "cancel" },
+      ]
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled={true}
       >
-        <ProfileHeader profile={profile} />
+        <ProfileHeader profile={profile} onLogoutPress={handleLogoutPress} />
         <ProfileStats stats={profile?.stats} />
         <ActionButtons />
 
