@@ -5,16 +5,12 @@ const ProfileStats = ({ stats }) => {
   return (
     <View style={styles.container}>
       <View style={styles.statBox}>
-        <Text style={styles.number}>{stats?.projects}</Text>
+        <Text style={styles.number}>{stats?.projects ?? 0}</Text>
         <Text style={styles.label}>Projects</Text>
       </View>
       <View style={styles.statBox}>
-        <Text style={styles.number}>{stats?.followers}</Text>
-        <Text style={styles.label}>Followers</Text>
-      </View>
-      <View style={styles.statBox}>
-        <Text style={styles.number}>{stats?.following}</Text>
-        <Text style={styles.label}>Following</Text>
+        <Text style={styles.number}>{stats?.inspirations ?? 0}</Text>
+        <Text style={styles.label}>Inspirations</Text>
       </View>
     </View>
   );
@@ -23,18 +19,19 @@ const ProfileStats = ({ stats }) => {
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
+    gap: 15,
     paddingHorizontal: 20,
     marginBottom: 20,
   },
   statBox: {
-    width: "30%",
+    width: "42%",
     backgroundColor: "#fff",
     borderRadius: 15,
     padding: 15,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#f0f0f0", // Very light grey border
+    borderColor: "#f0f0f0",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,

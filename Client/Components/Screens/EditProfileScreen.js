@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import { wp, hp } from "../../Utils/Common";
 import { useAuth } from "../../Context/AuthContext";
 import { updateProfile } from "../../Services/authService";
@@ -69,7 +69,7 @@ export default function EditProfileScreen({ navigation }) {
 
       if (imageUri) {
         const base64 = await FileSystem.readAsStringAsync(imageUri, {
-          encoding: FileSystem.EncodingType.Base64,
+          encoding: 'base64',
         });
         profileData.image_base64 = base64;
       }

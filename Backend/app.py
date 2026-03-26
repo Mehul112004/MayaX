@@ -4,6 +4,9 @@ from flask_cors import CORS
 from config import Config
 from routes.auth import auth_bp
 from routes.user import user_bp
+from routes.design import design_bp
+from routes.preferences import preferences_bp
+from routes.feed import feed_bp
 
 
 def create_app():
@@ -16,6 +19,9 @@ def create_app():
     # Register route blueprints
     app.register_blueprint(auth_bp)
     app.register_blueprint(user_bp)
+    app.register_blueprint(design_bp)
+    app.register_blueprint(preferences_bp)
+    app.register_blueprint(feed_bp)
 
     @app.route("/health", methods=["GET"])
     def health_check():

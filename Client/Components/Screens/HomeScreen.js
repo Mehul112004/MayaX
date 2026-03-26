@@ -1,45 +1,127 @@
-import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
-import React from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, TouchableWithoutFeedback } from 'react-native';
+import React, { useState, useEffect } from 'react';
 import HomeHeader from '../HomeHeader';
 import DesignCard from '../DesignCard';
 import { useDesigns } from '../../Context/DesignContext';
+import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeIn, FadeOut, Easing, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import { fetchForYouFeed } from '../../Services/feedService';
 
 const HomeScreen = () => {
   const { designs, loading } = useDesigns();
+  
+  // New States for Feed Toggle
+  const [activeTab, setActiveTab] = useState('Your Designs'); // 'Your Designs' | 'For You'
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [forYouData, setForYouData] = useState([]);
+  const [feedLoading, setFeedLoading] = useState(false);
+
+  // Fetch 'For You' Feed when toggled
+  useEffect(() => {
+      if (activeTab === 'For You' && forYouData.length === 0) {
+          const loadFeed = async () => {
+              setFeedLoading(true);
+              try {
+                  const data = await fetchForYouFeed();
+                  setForYouData(data);
+              } catch (e) {
+                  console.error("Failed to load feed", e);
+              } finally {
+                  setFeedLoading(false);
+              }
+          };
+          loadFeed();
+      }
+  }, [activeTab]);
 
   const renderItem = ({ item }) => (
     <DesignCard
       title={item.title}
-      image={item.image}
+      image={item.image || item.image_url} // projects table uses image_url, designs table uses image
       onPress={() => console.log('Pressed', item.title)}
     />
   );
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#A34E5D" />
-      </View>
-    );
-  }
+  const displayData = activeTab === 'Your Designs' ? designs : forYouData;
+  const displayLoading = activeTab === 'Your Designs' ? loading : feedLoading;
+
+  const handleSelectTab = (tab) => {
+      setActiveTab(tab);
+      setDropdownVisible(false);
+  };
+
+  const chevronStyle = useAnimatedStyle(() => {
+    return {
+        transform: [{ rotate: withTiming(dropdownVisible ? '180deg' : '0deg', { duration: 250, easing: Easing.out(Easing.exp) }) }]
+    };
+  });
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={styles.container}>
       <HomeHeader />
       <View style={styles.content}>
-        <Text style={styles.sectionTitle}>Your Designs</Text>
-        <FlatList
-          data={designs}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          columnWrapperStyle={styles.columnWrapper}
-          contentContainerStyle={styles.listContainer}
-          showsVerticalScrollIndicator={false}
-        />
+        
+        {/* Dropdown Header */}
+        <View style={styles.headerRow}>
+            <TouchableOpacity 
+                style={styles.dropdownToggle} 
+                onPress={() => setDropdownVisible(!dropdownVisible)}
+                activeOpacity={0.7}
+            >
+                <Text style={styles.sectionTitle}>{activeTab}</Text>
+                <Animated.View style={[styles.chevronContainer, chevronStyle]}>
+                    <Ionicons name="chevron-down" size={24} color="#1a1a1a" />
+                </Animated.View>
+            </TouchableOpacity>
+        </View>
+
+        {dropdownVisible && (
+            <TouchableWithoutFeedback onPress={() => setDropdownVisible(false)}>
+                <View style={[StyleSheet.absoluteFillObject, { zIndex: 10 }]} />
+            </TouchableWithoutFeedback>
+        )}
+
+        {dropdownVisible && (
+            <Animated.View 
+                entering={FadeIn.duration(200)} 
+                exiting={FadeOut.duration(200)} 
+                style={styles.dropdownMenu}
+            >
+                <TouchableOpacity 
+                    style={styles.dropdownItem} 
+                    onPress={() => handleSelectTab('Your Designs')}
+                >
+                    <Text style={[styles.dropdownText, activeTab === 'Your Designs' && styles.dropdownTextActive]}>Your Designs</Text>
+                    {activeTab === 'Your Designs' && <Ionicons name="checkmark" size={20} color="#A34E5D" />}
+                </TouchableOpacity>
+                <View style={styles.divider} />
+                <TouchableOpacity 
+                    style={styles.dropdownItem} 
+                    onPress={() => handleSelectTab('For You')}
+                >
+                    <Text style={[styles.dropdownText, activeTab === 'For You' && styles.dropdownTextActive]}>For You</Text>
+                    {activeTab === 'For You' && <Ionicons name="checkmark" size={20} color="#A34E5D" />}
+                </TouchableOpacity>
+            </Animated.View>
+        )}
+
+        {displayLoading ? (
+            <View style={styles.center}>
+              <ActivityIndicator size="large" color="#A34E5D" />
+            </View>
+        ) : (
+            <FlatList
+              data={displayData}
+              renderItem={renderItem}
+              keyExtractor={(item) => item.id}
+              numColumns={2}
+              columnWrapperStyle={styles.columnWrapper}
+              contentContainerStyle={styles.listContainer}
+              showsVerticalScrollIndicator={false}
+            />
+        )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -53,17 +135,66 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#fff',
+    marginTop: 50, // lower indicator so it stays inside FlatList area intuitively
   },
   content: {
     flex: 1,
     paddingHorizontal: 20,
   },
+  headerRow: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    marginTop: 10,
+    zIndex: 20, // Higher than AbsoluteFill background
+  },
+  dropdownToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   sectionTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#1a1a1a',
-    marginBottom: 20,
-    marginTop: 10,
+  },
+  chevronContainer: {
+    marginLeft: 8,
+    marginTop: 4,
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingVertical: 5,
+    width: 200,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    zIndex: 100, // Topmost level
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  dropdownText: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+  },
+  dropdownTextActive: {
+    color: '#A34E5D',
+    fontWeight: '700',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#f0f0f0',
+    marginHorizontal: 10,
   },
   listContainer: {
     paddingBottom: 20,
