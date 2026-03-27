@@ -4,7 +4,7 @@ import * as SecureStore from "expo-secure-store";
 // IMPORTANT: Replace with your machine's local IP when testing on a device
 // Use 'http://localhost:5000' when testing on web/simulator
 const api = axios.create({
-  baseURL: "http://192.168.29.251:5001",
+  baseURL: "http://172.20.10.2:5001",
   timeout: 15000,
   headers: {
     "Content-Type": "application/json",

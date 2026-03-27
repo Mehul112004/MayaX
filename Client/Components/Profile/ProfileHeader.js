@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, Image, StyleSheet, TouchableOpacity, Modal, TouchableWithoutFeedback } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useEdgeAI } from "../../hooks/useEdgeAI";
 
 /**
  * Get initials from a name string (matching backend logic).
@@ -30,6 +31,7 @@ const pickColor = (name) => {
 
 const ProfileHeader = ({ profile, onLogoutPress }) => {
   const [popoverVisible, setPopoverVisible] = useState(false);
+  const { modelStatus, enableEdgeAI, downloadProgress } = useEdgeAI();
 
   const hasAvatar =
     profile?.avatar_url && !profile?.avatar_url?.includes("undefined");
@@ -71,6 +73,26 @@ const ProfileHeader = ({ profile, onLogoutPress }) => {
                     >
                       <Ionicons name="information-circle-outline" size={20} color="#333" style={styles.popoverIcon} />
                       <Text style={styles.popoverText}>About Us</Text>
+                    </TouchableOpacity>
+
+                    <View style={styles.popoverDivider} />
+
+                    <TouchableOpacity 
+                      style={styles.popoverItem}
+                      onPress={() => {
+                        if (modelStatus === 'idle' || modelStatus === 'failed') {
+                          enableEdgeAI();
+                        }
+                        setPopoverVisible(false);
+                      }}
+                    >
+                      <Ionicons name="hardware-chip-outline" size={20} color="#333" style={styles.popoverIcon} />
+                      <Text style={styles.popoverText}>
+                        {modelStatus === 'idle' ? 'Enable Edge AI' :
+                         modelStatus === 'downloading' ? `Downloading... ${downloadProgress ? Math.round(downloadProgress*100) : 0}%` :
+                         modelStatus === 'ready' ? 'Edge AI Ready ✓' :
+                         modelStatus === 'failed' ? 'Download Failed (Retry)' : 'Edge AI'}
+                      </Text>
                     </TouchableOpacity>
                     
                     <View style={styles.popoverDivider} />

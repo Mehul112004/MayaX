@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useCallback,
+} from "react";
 import {
   View,
   Text,
@@ -14,12 +20,14 @@ import {
   UIManager,
   KeyboardAvoidingView,
   Dimensions,
+  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
   useNavigation,
   useIsFocused,
   useRoute,
+  useFocusEffect,
 } from "@react-navigation/native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
@@ -28,6 +36,7 @@ import AccordionItem from "../Create/AccordionItem";
 import DesignLoadingOverlay from "../Create/DesignLoadingOverlay";
 import { getPreferenceCategories } from "../../Services/preferencesService";
 import { LinearGradient } from "expo-linear-gradient";
+import { useEdgeAI } from "../../hooks/useEdgeAI";
 
 const { width } = Dimensions.get("window");
 
@@ -41,6 +50,13 @@ const CreateScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const isFocused = useIsFocused();
+
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle("light-content");
+      return () => StatusBar.setBarStyle("dark-content");
+    }, []),
+  );
   const prefill = route.params?.prefill || null;
   // 'form' | 'prompt' | 'camera' | 'result' | 'result_fullscreen'
   const [step, setStep] = useState("form");
@@ -57,6 +73,10 @@ const CreateScreen = () => {
   const [showImageOptions, setShowImageOptions] = useState(false);
   const [promptText, setPromptText] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const { modelStatus, enableEdgeAI, refinePrompt, downloadProgress } =
+    useEdgeAI();
+  const [isRefining, setIsRefining] = useState(false);
 
   // ---- Image Handlers ----
 
@@ -307,6 +327,79 @@ const CreateScreen = () => {
                   value={promptText}
                   onChangeText={setPromptText}
                 />
+
+                <View style={{ flexDirection: "row", justifyContent: "flex-end", paddingBottom: 12, paddingRight: 12 }}>
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      backgroundColor:
+                        modelStatus === "ready"
+                          ? "rgba(76, 175, 80, 0.1)"
+                          : "rgba(217,115,133,0.1)",
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 16,
+                    }}
+                    disabled={isRefining || !promptText.trim()}
+                    onPress={async () => {
+                      if (modelStatus === "idle" || modelStatus === "failed") {
+                        enableEdgeAI();
+                      } else if (modelStatus === "ready") {
+                        setIsRefining(true);
+                        try {
+                          const refinedText = await refinePrompt(promptText);
+                          console.log(
+                            "REFINED TEXT RECEIVED :: ==> ",
+                            refinedText,
+                          );
+                          setPromptText(refinedText);
+                        } catch (e) {
+                          Alert.alert(
+                            "Error",
+                            "Failed to refine prompt. Ensure model is loaded.",
+                          );
+                        } finally {
+                          setIsRefining(false);
+                        }
+                      }
+                    }}
+                  >
+                    {isRefining ? (
+                      <ActivityIndicator size="small" color="#4CAF50" />
+                    ) : (
+                      <Ionicons
+                        name={
+                          modelStatus === "ready"
+                            ? "sparkles"
+                            : modelStatus === "downloading"
+                              ? "cloud-download"
+                              : "hardware-chip-outline"
+                        }
+                        size={16}
+                        color={modelStatus === "ready" ? "#4CAF50" : "#D97385"}
+                      />
+                    )}
+                    <Text
+                      style={{
+                        color: modelStatus === "ready" ? "#4CAF50" : "#D97385",
+                        fontSize: 12,
+                        fontWeight: "600",
+                        marginLeft: 6,
+                      }}
+                    >
+                      {isRefining
+                        ? "Refining..."
+                        : modelStatus === "idle"
+                          ? "Enable AI Refinement"
+                          : modelStatus === "downloading"
+                            ? `Downloading AI... ${downloadProgress ? Math.round(downloadProgress * 100) : 0}%`
+                            : modelStatus === "ready"
+                              ? "Refine with AI"
+                              : "Retry Download"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {/* Image Section */}
