@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert, Image, Platform, UIManager } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useIsFocused } from '@react-navigation/native';
+import { useNavigation, useIsFocused, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 
@@ -16,7 +16,9 @@ if (Platform.OS === 'android') {
 
 const CreateScreen = () => {
   const navigation = useNavigation();
+  const route = useRoute();
   const isFocused = useIsFocused();
+  const prefill = route.params?.prefill || null;
   const [step, setStep] = useState('form'); // 'form' | 'camera' | 'result' | 'result_fullscreen'
   const [expandedSection, setExpandedSection] = useState(null);
   
@@ -42,17 +44,26 @@ const CreateScreen = () => {
 
         setCategories(parsedData);
         
-        // Initialize preferences state based on fetched categories
+        // Initialize preferences state — pre-fill from route params if available
         const initialPrefs = {};
+        let firstUnfilledCategory = null;
+
         parsedData.forEach(cat => {
-            initialPrefs[cat.category_name] = null;
+            const paramValue = prefill?.[cat.category_name] || null;
+            // Only pre-fill if the value is a valid option for this category
+            if (paramValue && cat.options && cat.options.includes(paramValue)) {
+                initialPrefs[cat.category_name] = paramValue;
+            } else {
+                initialPrefs[cat.category_name] = null;
+                if (!firstUnfilledCategory) {
+                    firstUnfilledCategory = cat.category_name;
+                }
+            }
         });
         setPreferences(initialPrefs);
         
-        // Auto expand first category
-        if (parsedData.length > 0) {
-            setExpandedSection(parsedData[0].category_name);
-        }
+        // Auto expand the first unfilled category, or first category if all filled
+        setExpandedSection(firstUnfilledCategory || (parsedData.length > 0 ? parsedData[0].category_name : null));
       } catch (error) {
         console.error("Failed to load generics preferences:", error);
       } finally {
@@ -61,7 +72,7 @@ const CreateScreen = () => {
     };
 
     fetchPreferences();
-  }, []);
+  }, [prefill]);
 
   useLayoutEffect(() => {
     if (step === 'camera' || step === 'result_fullscreen') {
