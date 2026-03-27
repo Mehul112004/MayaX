@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Image, StyleSheet, Dimensions, Text } from "react-native";
+import { View, Image, StyleSheet, Dimensions, Text, TouchableOpacity } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
 
@@ -7,11 +7,16 @@ const { width } = Dimensions.get("window");
 const COLUMN_COUNT = 2;
 const ITEM_SIZE = width / COLUMN_COUNT;
 
-const ImageGrid = ({ images }) => {
+const ImageGrid = ({ images, onItemPress }) => {
   return (
     <View style={styles.container}>
       {(images || []).map((item) => (
-        <View key={item?.id} style={styles.imageContainer}>
+        <TouchableOpacity
+          key={item?.id}
+          style={styles.imageContainer}
+          activeOpacity={0.85}
+          onPress={() => onItemPress && onItemPress(item)}
+        >
           <Image source={{ uri: item?.image }} style={styles.image} />
 
           {/* Likes Count Overlay */}
@@ -21,7 +26,7 @@ const ImageGrid = ({ images }) => {
               <Text style={styles.likesText}>{item.likes_count}</Text>
             </View>
           )}
-        </View>
+        </TouchableOpacity>
       ))}
     </View>
   );

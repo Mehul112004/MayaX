@@ -9,22 +9,35 @@ import {
     ActivityIndicator,
     Dimensions,
     StatusBar,
+    Alert,
+    Modal,
+    TextInput,
+    KeyboardAvoidingView,
+    Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
-import { getProjectDetails, likeProject, unlikeProject } from '../../Services/projectService';
+import { getProjectDetails, likeProject, unlikeProject, updateProject, deleteProject } from '../../Services/projectService';
+import { useAuth } from '../../Context/AuthContext';
 
 const { width, height } = Dimensions.get('window');
 const IMAGE_HEIGHT = height * 0.5;
 
 const ProjectDetailsScreen = ({ navigation, route }) => {
     const { projectId, projectData } = route.params;
+    const { user } = useAuth();
     const [project, setProject] = useState(projectData || null);
     const [loading, setLoading] = useState(!projectData);
     const [liked, setLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(0);
     const [showOriginal, setShowOriginal] = useState(false);
+
+    // Owner controls
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editTitle, setEditTitle] = useState('');
+    const [editDescription, setEditDescription] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
 
     useFocusEffect(
         useCallback(() => {
@@ -95,6 +108,68 @@ const ProjectDetailsScreen = ({ navigation, route }) => {
     const creator = project.user || {};
     const avatarUri = creator.avatar_url;
     const creatorName = creator.name || 'Unknown Creator';
+    const isOwner = user?.id && (project.user_id === user.id || creator.id === user.id);
+
+    const handleDelete = () => {
+        Alert.alert(
+            'Delete Project',
+            'Are you sure you want to delete this project? This action cannot be undone.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await deleteProject(projectId);
+                            Alert.alert('Deleted', 'Project has been removed.');
+                            navigation.goBack();
+                        } catch (e) {
+                            Alert.alert('Error', 'Failed to delete project.');
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
+    const handleOpenEdit = () => {
+        setEditTitle(project.title || '');
+        setEditDescription(project.description || '');
+        setShowEditModal(true);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editTitle.trim()) {
+            Alert.alert('Error', 'Title is required.');
+            return;
+        }
+        setIsSaving(true);
+        try {
+            const result = await updateProject(projectId, {
+                title: editTitle.trim(),
+                description: editDescription.trim(),
+            });
+            setProject(prev => ({ ...prev, title: editTitle.trim(), description: editDescription.trim() }));
+            setShowEditModal(false);
+        } catch (e) {
+            Alert.alert('Error', 'Failed to update project.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleOwnerMenu = () => {
+        Alert.alert(
+            'Project Options',
+            '',
+            [
+                { text: 'Edit Details', onPress: handleOpenEdit },
+                { text: 'Delete Project', onPress: handleDelete, style: 'destructive' },
+                { text: 'Cancel', style: 'cancel' },
+            ]
+        );
+    };
 
     return (
         <View style={styles.container}>
@@ -133,6 +208,17 @@ const ProjectDetailsScreen = ({ navigation, route }) => {
                             activeOpacity={0.8}
                         >
                             <Ionicons name={showOriginal ? "eye-off" : "eye"} size={24} color="#fff" />
+                        </TouchableOpacity>
+                    )}
+
+                    {/* Owner Menu Button */}
+                    {isOwner && (
+                        <TouchableOpacity
+                            style={styles.menuButton}
+                            onPress={handleOwnerMenu}
+                            activeOpacity={0.8}
+                        >
+                            <Ionicons name="ellipsis-vertical" size={22} color="#fff" />
                         </TouchableOpacity>
                     )}
 
@@ -226,6 +312,60 @@ const ProjectDetailsScreen = ({ navigation, route }) => {
                     {liked ? 'Saved' : 'Save to Inspirations'}
                 </Text>
             </TouchableOpacity>
+
+            {/* Edit Modal */}
+            <Modal
+                visible={showEditModal}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setShowEditModal(false)}
+            >
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={styles.modalOverlay}
+                >
+                    <View style={styles.modalContainer}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Edit Project</Text>
+                            <TouchableOpacity onPress={() => setShowEditModal(false)}>
+                                <Ionicons name="close" size={24} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={styles.inputLabel}>Title</Text>
+                        <TextInput
+                            style={styles.modalInput}
+                            value={editTitle}
+                            onChangeText={setEditTitle}
+                            placeholder="Project title"
+                            placeholderTextColor="#666"
+                            maxLength={50}
+                        />
+
+                        <Text style={styles.inputLabel}>Description</Text>
+                        <TextInput
+                            style={[styles.modalInput, { height: 100, textAlignVertical: 'top' }]}
+                            value={editDescription}
+                            onChangeText={setEditDescription}
+                            placeholder="Describe your design..."
+                            placeholderTextColor="#666"
+                            multiline
+                        />
+
+                        <TouchableOpacity
+                            style={[styles.saveButton, isSaving && { opacity: 0.6 }]}
+                            onPress={handleSaveEdit}
+                            disabled={isSaving}
+                        >
+                            {isSaving ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
+                                <Text style={styles.saveButtonText}>Save Changes</Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </KeyboardAvoidingView>
+            </Modal>
         </View>
     );
 };
@@ -437,6 +577,74 @@ const styles = StyleSheet.create({
     },
     likeButtonTextActive: {
         color: '#fff',
+    },
+
+    // Owner Menu Button
+    menuButton: {
+        position: 'absolute',
+        top: 55,
+        right: 70,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+
+    // Edit Modal
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        justifyContent: 'flex-end',
+    },
+    modalContainer: {
+        backgroundColor: '#1e1e1e',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: 24,
+        paddingBottom: 40,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#fff',
+    },
+    inputLabel: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#aaa',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: 8,
+    },
+    modalInput: {
+        backgroundColor: '#2a2a2a',
+        borderRadius: 12,
+        padding: 14,
+        color: '#fff',
+        fontSize: 15,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#333',
+    },
+    saveButton: {
+        backgroundColor: '#D97385',
+        borderRadius: 14,
+        paddingVertical: 16,
+        alignItems: 'center',
+        marginTop: 8,
+    },
+    saveButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '700',
     },
 });
 

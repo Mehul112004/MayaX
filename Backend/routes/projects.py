@@ -110,3 +110,68 @@ def save_project(project_id):
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+
+@projects_bp.route("/<project_id>", methods=["PUT"])
+@require_auth
+def update_project_details(project_id):
+    try:
+        data = request.get_json()
+        title = data.get("title")
+        description = data.get("description", "")
+
+        if not title:
+            return jsonify({"error": "Title is required"}), 400
+
+        supabase = _get_supabase()
+
+        # Verify ownership
+        project = supabase.table("projects").select("user_id").eq("id", project_id).execute()
+        if not project.data:
+            return jsonify({"error": "Project not found"}), 404
+        if project.data[0]["user_id"] != g.user_id:
+            return jsonify({"error": "Unauthorized"}), 403
+
+        update_data = {"title": title, "description": description}
+
+        update_response = supabase.table("projects").update(
+            update_data
+        ).eq("id", project_id).execute()
+
+        if not update_response.data:
+            return jsonify({"error": "Failed to update project"}), 500
+
+        return jsonify({
+            "message": "Project updated successfully.",
+            "project": update_response.data[0]
+        }), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@projects_bp.route("/<project_id>", methods=["DELETE"])
+@require_auth
+def delete_project(project_id):
+    try:
+        supabase = _get_supabase()
+
+        # Verify ownership
+        project = supabase.table("projects").select("user_id").eq("id", project_id).execute()
+        if not project.data:
+            return jsonify({"error": "Project not found"}), 404
+        if project.data[0]["user_id"] != g.user_id:
+            return jsonify({"error": "Unauthorized"}), 403
+
+        delete_response = supabase.table("projects").delete().eq("id", project_id).execute()
+
+        if not delete_response.data:
+            return jsonify({"error": "Failed to delete project"}), 500
+
+        return jsonify({
+            "message": "Project deleted successfully."
+        }), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500

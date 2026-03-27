@@ -69,3 +69,23 @@ export const saveProject = async (projectId, finalImageUrl) => {
         throw error;
     }
 };
+
+export const updateProject = async (projectId, projectData) => {
+    try {
+        const response = await api.put(`/projects/${projectId}`, projectData);
+        return response.data;
+    } catch (error) {
+        console.error('Error updating project:', error);
+        throw error;
+    }
+};
+
+export const deleteProject = async (projectId) => {
+    try {
+        const response = await api.delete(`/projects/${projectId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting project:', error);
+        throw error;
+    }
+};
