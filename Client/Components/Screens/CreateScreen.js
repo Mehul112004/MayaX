@@ -25,6 +25,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 
 import AccordionItem from "../Create/AccordionItem";
+import DesignLoadingOverlay from "../Create/DesignLoadingOverlay";
 import { getPreferenceCategories } from "../../Services/preferencesService";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -55,6 +56,7 @@ const CreateScreen = () => {
   const [photoUri, setPhotoUri] = useState(null);
   const [showImageOptions, setShowImageOptions] = useState(false);
   const [promptText, setPromptText] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // ---- Image Handlers ----
 
@@ -264,172 +266,185 @@ const CreateScreen = () => {
   // =====================
   if (step === "prompt") {
     return (
-      <SafeAreaView style={styles.container}>
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
-          {/* Header */}
-          <View style={styles.promptHeader}>
-            <TouchableOpacity
-              onPress={() => {
-                setStep("form");
-                setPhotoUri(null);
-                setPromptText("");
-                setShowImageOptions(false);
-              }}
-              style={styles.promptBackBtn}
-            >
-              <Ionicons name="arrow-back" size={24} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.promptHeaderTitle}>Describe Your Design</Text>
-            <View style={{ width: 40 }} />
-          </View>
-
-          <ScrollView
-            contentContainerStyle={styles.promptContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
+      <View style={{ flex: 1 }}>
+        <SafeAreaView style={styles.container}>
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
           >
-            {/* Prompt Input */}
-            <Text style={styles.promptLabel}>Your Prompt</Text>
-            <View style={styles.promptInputContainer}>
-              <TextInput
-                style={styles.promptInput}
-                placeholder="Describe the design you'd like to create..."
-                placeholderTextColor="#666"
-                multiline
-                numberOfLines={5}
-                textAlignVertical="top"
-                value={promptText}
-                onChangeText={setPromptText}
-              />
+            {/* Header */}
+            <View style={styles.promptHeader}>
+              <TouchableOpacity
+                onPress={() => {
+                  setStep("form");
+                  setPhotoUri(null);
+                  setPromptText("");
+                  setShowImageOptions(false);
+                }}
+                style={styles.promptBackBtn}
+              >
+                <Ionicons name="arrow-back" size={24} color="#fff" />
+              </TouchableOpacity>
+              <Text style={styles.promptHeaderTitle}>Describe Your Design</Text>
+              <View style={{ width: 40 }} />
             </View>
 
-            {/* Image Section */}
-            <Text style={styles.promptLabel}>Reference Image</Text>
-
-            {photoUri ? (
-              // Image preview with options overlay
-              <View style={styles.promptImageContainer}>
-                <TouchableOpacity
-                  onPress={() => setShowImageOptions(!showImageOptions)}
-                  activeOpacity={0.9}
-                  style={styles.promptImageWrapper}
-                >
-                  <Image
-                    source={{ uri: photoUri }}
-                    style={styles.promptImage}
-                  />
-                </TouchableOpacity>
-
-                {/* Remove Image Button */}
-                <TouchableOpacity
-                  style={styles.removeImageButton}
-                  onPress={() => {
-                    setPhotoUri(null);
-                    setShowImageOptions(false);
-                  }}
-                >
-                  <Ionicons name="close" size={20} color="#fff" />
-                </TouchableOpacity>
-
-                {/* Options Overlay */}
-                {showImageOptions && (
-                  <View style={styles.imageOverlayOptions}>
-                    <TouchableOpacity
-                      style={styles.overlayOption}
-                      onPress={handleCropImage}
-                    >
-                      <View style={styles.iconCircle}>
-                        <Ionicons name="crop" size={24} color="#fff" />
-                      </View>
-                      <Text style={styles.overlayOptionText}>Crop</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.overlayOption}
-                      onPress={handleChooseFromGallery}
-                    >
-                      <View style={styles.iconCircle}>
-                        <Ionicons name="images" size={24} color="#fff" />
-                      </View>
-                      <Text style={styles.overlayOptionText}>Choose</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.overlayOption}
-                      onPress={handleRecapture}
-                    >
-                      <View style={styles.iconCircle}>
-                        <Ionicons
-                          name="camera-reverse"
-                          size={24}
-                          color="#fff"
-                        />
-                      </View>
-                      <Text style={styles.overlayOptionText}>Retake</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-            ) : (
-              // Add Image Buttons
-              <View style={styles.addImageSection}>
-                <TouchableOpacity
-                  style={styles.addImageButton}
-                  onPress={handleOpenCamera}
-                >
-                  <View style={styles.addImageIconCircle}>
-                    <Ionicons name="camera" size={28} color="#D97385" />
-                  </View>
-                  <Text style={styles.addImageText}>Take Photo</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.addImageButton}
-                  onPress={handleChooseFromGallery}
-                >
-                  <View style={styles.addImageIconCircle}>
-                    <Ionicons name="images" size={28} color="#D97385" />
-                  </View>
-                  <Text style={styles.addImageText}>Choose from Gallery</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Send Button */}
-            <TouchableOpacity
-              style={[
-                styles.gradientButton,
-                (!photoUri || !promptText.trim()) && styles.disabledButton,
-              ]}
-              disabled={!photoUri || !promptText.trim()}
-              onPress={() => {
-                setShowImageOptions(false);
-                navigation.navigate("EditScreen", {
-                  photoUri,
-                  prompt: promptText,
-                  preferences,
-                });
-              }}
+            <ScrollView
+              contentContainerStyle={styles.promptContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
             >
-              <LinearGradient
-                colors={["#A34E5D", "#D97385"]}
-                style={StyleSheet.absoluteFill}
-                borderRadius={25}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              />
-              <Text style={styles.saveButtonText}>Generate Design</Text>
-              <Ionicons
-                name="sparkles"
-                size={20}
-                color="#fff"
-                style={{ marginLeft: 8 }}
-              />
-            </TouchableOpacity>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+              {/* Prompt Input */}
+              <Text style={styles.promptLabel}>Your Prompt</Text>
+              <View style={styles.promptInputContainer}>
+                <TextInput
+                  style={styles.promptInput}
+                  placeholder="Describe the design you'd like to create..."
+                  placeholderTextColor="#666"
+                  multiline
+                  numberOfLines={5}
+                  textAlignVertical="top"
+                  value={promptText}
+                  onChangeText={setPromptText}
+                />
+              </View>
+
+              {/* Image Section */}
+              <Text style={styles.promptLabel}>Reference Image</Text>
+
+              {photoUri ? (
+                // Image preview with options overlay
+                <View style={styles.promptImageContainer}>
+                  <TouchableOpacity
+                    onPress={() => setShowImageOptions(!showImageOptions)}
+                    activeOpacity={0.9}
+                    style={styles.promptImageWrapper}
+                  >
+                    <Image
+                      source={{ uri: photoUri }}
+                      style={styles.promptImage}
+                    />
+                  </TouchableOpacity>
+
+                  {/* Remove Image Button */}
+                  <TouchableOpacity
+                    style={styles.removeImageButton}
+                    onPress={() => {
+                      setPhotoUri(null);
+                      setShowImageOptions(false);
+                    }}
+                  >
+                    <Ionicons name="close" size={20} color="#fff" />
+                  </TouchableOpacity>
+
+                  {/* Options Overlay */}
+                  {showImageOptions && (
+                    <View style={styles.imageOverlayOptions}>
+                      <TouchableOpacity
+                        style={styles.overlayOption}
+                        onPress={handleCropImage}
+                      >
+                        <View style={styles.iconCircle}>
+                          <Ionicons name="crop" size={24} color="#fff" />
+                        </View>
+                        <Text style={styles.overlayOptionText}>Crop</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.overlayOption}
+                        onPress={handleChooseFromGallery}
+                      >
+                        <View style={styles.iconCircle}>
+                          <Ionicons name="images" size={24} color="#fff" />
+                        </View>
+                        <Text style={styles.overlayOptionText}>Choose</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.overlayOption}
+                        onPress={handleRecapture}
+                      >
+                        <View style={styles.iconCircle}>
+                          <Ionicons
+                            name="camera-reverse"
+                            size={24}
+                            color="#fff"
+                          />
+                        </View>
+                        <Text style={styles.overlayOptionText}>Retake</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              ) : (
+                // Add Image Buttons
+                <View style={styles.addImageSection}>
+                  <TouchableOpacity
+                    style={styles.addImageButton}
+                    onPress={handleOpenCamera}
+                  >
+                    <View style={styles.addImageIconCircle}>
+                      <Ionicons name="camera" size={28} color="#D97385" />
+                    </View>
+                    <Text style={styles.addImageText}>Take Photo</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.addImageButton}
+                    onPress={handleChooseFromGallery}
+                  >
+                    <View style={styles.addImageIconCircle}>
+                      <Ionicons name="images" size={28} color="#D97385" />
+                    </View>
+                    <Text style={styles.addImageText}>Choose from Gallery</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Send Button */}
+              <TouchableOpacity
+                style={[
+                  styles.gradientButton,
+                  (!photoUri || !promptText.trim()) && styles.disabledButton,
+                ]}
+                disabled={!photoUri || !promptText.trim()}
+                onPress={() => {
+                  setShowImageOptions(false);
+                  setIsGenerating(true);
+                }}
+              >
+                <LinearGradient
+                  colors={["#A34E5D", "#D97385"]}
+                  style={StyleSheet.absoluteFill}
+                  borderRadius={25}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                />
+                <Text style={styles.saveButtonText}>Generate Design</Text>
+                <Ionicons
+                  name="sparkles"
+                  size={20}
+                  color="#fff"
+                  style={{ marginLeft: 8 }}
+                />
+              </TouchableOpacity>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+
+        <DesignLoadingOverlay
+          isVisible={isGenerating}
+          onComplete={() => {
+            setIsGenerating(false);
+            setPhotoUri(null);
+            setPromptText("");
+            setStep("form");
+            navigation.navigate("EditScreen", {
+              photoUri,
+              prompt: promptText,
+              preferences,
+            });
+          }}
+        />
+      </View>
     );
   }
 
