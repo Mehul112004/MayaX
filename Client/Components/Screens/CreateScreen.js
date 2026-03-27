@@ -35,6 +35,7 @@ import * as ImagePicker from "expo-image-picker";
 import AccordionItem from "../Create/AccordionItem";
 import DesignLoadingOverlay from "../Create/DesignLoadingOverlay";
 import { getPreferenceCategories } from "../../Services/preferencesService";
+import { generateDesign, saveProject } from "../../Services/projectService";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEdgeAI } from "../../hooks/useEdgeAI";
 
@@ -73,6 +74,12 @@ const CreateScreen = () => {
   const [showImageOptions, setShowImageOptions] = useState(false);
   const [promptText, setPromptText] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const [generatedImage, setGeneratedImage] = useState(null);
+  const [projectId, setProjectId] = useState(null);
+  const generatePromiseRef = useRef(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isBackendDone, setIsBackendDone] = useState(false);
 
   const { modelStatus, enableEdgeAI, refinePrompt, downloadProgress } =
     useEdgeAI();
@@ -501,7 +508,21 @@ const CreateScreen = () => {
                 disabled={!photoUri || !promptText.trim()}
                 onPress={() => {
                   setShowImageOptions(false);
+                  setIsBackendDone(false);
                   setIsGenerating(true);
+                  
+                  generateDesign(photoUri, promptText)
+                    .then((result) => {
+                      if (result) {
+                        setGeneratedImage(result.generated_image_url);
+                        setProjectId(result.project_id);
+                      }
+                      setIsBackendDone(true);
+                    })
+                    .catch((err) => {
+                      Alert.alert("Error", "Generation failed. Ensure backend has finished computing.");
+                      setIsGenerating(false);
+                    });
                 }}
               >
                 <LinearGradient
@@ -525,16 +546,10 @@ const CreateScreen = () => {
 
         <DesignLoadingOverlay
           isVisible={isGenerating}
+          isBackendDone={isBackendDone}
           onComplete={() => {
             setIsGenerating(false);
-            setPhotoUri(null);
-            setPromptText("");
-            setStep("form");
-            navigation.navigate("EditScreen", {
-              photoUri,
-              prompt: promptText,
-              preferences,
-            });
+            setStep("result");
           }}
         />
       </View>
@@ -563,9 +578,9 @@ const CreateScreen = () => {
           </View>
 
           <View style={styles.resultContainer}>
-            {photoUri ? (
+            {(generatedImage || photoUri) ? (
               <Image
-                source={{ uri: photoUri }}
+                source={{ uri: generatedImage || photoUri }}
                 style={{
                   width: "100%",
                   height: "100%",
@@ -589,9 +604,22 @@ const CreateScreen = () => {
           <TouchableOpacity
             style={[
               styles.gradientButtonResult,
-              { width: "80%", alignSelf: "center" },
+              { width: "80%", alignSelf: "center", opacity: isSaving ? 0.7 : 1 },
             ]}
-            onPress={() => navigation.navigate("EditScreen")}
+            disabled={isSaving}
+            onPress={async () => {
+               setIsSaving(true);
+               try {
+                   await saveProject(projectId, generatedImage);
+                   Alert.alert("Success", "Project saved successfully!");
+                   // Currently returning to home equivalent
+                   navigation.navigate("Home");
+               } catch(e) {
+                   Alert.alert("Error", "Failed to save project.");
+               } finally {
+                   setIsSaving(false);
+               }
+            }}
           >
             <LinearGradient
               colors={["#A34E5D", "#D97385"]}
@@ -600,7 +628,11 @@ const CreateScreen = () => {
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             />
-            <Text style={styles.saveButtonText}>Edit</Text>
+            {isSaving ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.saveButtonText}>Save Project</Text>
+            )}
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
@@ -613,9 +645,9 @@ const CreateScreen = () => {
   if (step === "result_fullscreen") {
     return (
       <SafeAreaView style={styles.fullScreenContainer}>
-        {photoUri ? (
+        {(generatedImage || photoUri) ? (
           <Image
-            source={{ uri: photoUri }}
+            source={{ uri: generatedImage || photoUri }}
             style={{ width: "100%", height: "100%", resizeMode: "contain" }}
           />
         ) : (

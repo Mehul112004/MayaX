@@ -29,6 +29,7 @@ const { width, height } = Dimensions.get("window");
 
 export default function DesignLoadingOverlay({
   isVisible,
+  isBackendDone,
   onComplete,
   preferences,
 }) {
@@ -38,39 +39,41 @@ export default function DesignLoadingOverlay({
   const scaleOutAnim = useRef(new Animated.Value(1)).current;
   const fadeOutAnim = useRef(new Animated.Value(1)).current;
 
+  // Watch for backend completion to trigger the fade-out gracefully
   useEffect(() => {
-    if (isVisible) {
+    if (isBackendDone && isVisible) {
+      Animated.parallel([
+        Animated.timing(scaleOutAnim, {
+          toValue: 1.04,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeOutAnim, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        if (onComplete) onComplete();
+      });
+    }
+  }, [isBackendDone, isVisible]);
+
+  useEffect(() => {
+    if (isVisible && !isBackendDone) {
       animTime.setValue(0);
       progressAnim.setValue(12);
       scaleOutAnim.setValue(1);
       fadeOutAnim.setValue(1);
       setStatusLabel("Sketching room structure...");
 
-      // The main timeline runs from 0 to 4200 linearly.
-      // We will pause at 3950 to simulate waiting for the actual API.
-      // But since we immediately mock edit, we can run all the way to 4200.
+      // The main timeline runs from 0 to 4200 linearly and stays drawn.
       Animated.timing(animTime, {
         toValue: 4200,
         duration: 4200,
         easing: Easing.linear,
         useNativeDriver: false,
-      }).start(() => {
-        // Complete Transition
-        Animated.parallel([
-          Animated.timing(scaleOutAnim, {
-            toValue: 1.04,
-            duration: 400,
-            useNativeDriver: true,
-          }),
-          Animated.timing(fadeOutAnim, {
-            toValue: 0,
-            duration: 400,
-            useNativeDriver: true,
-          }),
-        ]).start(() => {
-          if (onComplete) onComplete();
-        });
-      });
+      }).start();
 
       // Timers for Status and Progress Bar (Discrete Steps)
       const timers = [
@@ -122,16 +125,16 @@ export default function DesignLoadingOverlay({
         setTimeout(() => {
           setStatusLabel("Refining palette...");
           Animated.timing(progressAnim, {
-            toValue: 94,
+            toValue: 90,
             duration: 500,
             easing: Easing.inOut(Easing.ease),
             useNativeDriver: false,
           }).start();
         }, 3700),
         setTimeout(() => {
-          setStatusLabel("Design ready.");
+          setStatusLabel("Finalizing high-res ML render...");
           Animated.timing(progressAnim, {
-            toValue: 100,
+            toValue: 98,
             duration: 500,
             easing: Easing.inOut(Easing.ease),
             useNativeDriver: false,
@@ -141,7 +144,7 @@ export default function DesignLoadingOverlay({
 
       return () => timers.forEach(clearTimeout);
     }
-  }, [isVisible]);
+  }, [isVisible, isBackendDone]);
 
   if (!isVisible) return null;
 
