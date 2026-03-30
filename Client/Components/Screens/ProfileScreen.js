@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from "react";
+import { useNavigation } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -23,16 +24,24 @@ import ImageGrid from "../Profile/ImageGrid";
 const { width } = Dimensions.get("window");
 
 const ProfileContent = () => {
+  const navigation = useNavigation();
   const { signOut } = useAuth();
   const { profile, loading, error, refreshProfile } = useProfile();
   const [activeTab, setActiveTab] = useState("Projects");
   const scrollViewRef = useRef(null);
 
+  const handleProjectPress = (item) => {
+    navigation.navigate("ProjectDetails", {
+      projectId: item.id || item.project_id,
+      projectData: item,
+    });
+  };
+
   // Refresh profile when screen comes into focus (e.g. after editing)
   useFocusEffect(
     useCallback(() => {
       refreshProfile();
-    }, [refreshProfile])
+    }, [refreshProfile]),
   );
 
   if (loading) {
@@ -73,14 +82,10 @@ const ProfileContent = () => {
   };
 
   const handleLogoutPress = () => {
-    Alert.alert(
-      "Options",
-      "What would you like to do?",
-      [
-        { text: "Log Out", onPress: () => signOut(), style: "destructive" },
-        { text: "Cancel", style: "cancel" },
-      ]
-    );
+    Alert.alert("Options", "What would you like to do?", [
+      { text: "Log Out", onPress: () => signOut(), style: "destructive" },
+      { text: "Cancel", style: "cancel" },
+    ]);
   };
 
   return (
@@ -106,10 +111,16 @@ const ProfileContent = () => {
           style={{ width: width }}
         >
           <View style={{ width: width }}>
-            <ImageGrid images={profile?.projects || []} />
+            <ImageGrid
+              images={profile?.projects || []}
+              onItemPress={handleProjectPress}
+            />
           </View>
           <View style={{ width: width }}>
-            <ImageGrid images={profile?.inspirations || []} />
+            <ImageGrid
+              images={profile?.inspirations || []}
+              onItemPress={handleProjectPress}
+            />
           </View>
         </ScrollView>
 

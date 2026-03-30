@@ -1,17 +1,20 @@
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, TouchableWithoutFeedback } from 'react-native';
 import React, { useState, useEffect } from 'react';
+import { useNavigation } from '@react-navigation/native';
 import HomeHeader from '../HomeHeader';
 import DesignCard from '../DesignCard';
+import ProjectCard from '../ProjectCard';
 import { useDesigns } from '../../Context/DesignContext';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeOut, Easing, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { fetchForYouFeed } from '../../Services/feedService';
 
 const HomeScreen = () => {
+  const navigation = useNavigation();
   const { designs, loading } = useDesigns();
   
   // New States for Feed Toggle
-  const [activeTab, setActiveTab] = useState('Your Designs'); // 'Your Designs' | 'For You'
+  const [activeTab, setActiveTab] = useState('Presets'); // 'Presets' | 'For You'
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [forYouData, setForYouData] = useState([]);
   const [feedLoading, setFeedLoading] = useState(false);
@@ -34,16 +37,43 @@ const HomeScreen = () => {
       }
   }, [activeTab]);
 
-  const renderItem = ({ item }) => (
-    <DesignCard
-      title={item.title}
-      image={item.image || item.image_url} // projects table uses image_url, designs table uses image
-      onPress={() => console.log('Pressed', item.title)}
-    />
-  );
+  const handlePresetPress = (item) => {
+    const prefParams = {
+      Colors: item.color_scheme || null,
+      Aesthetics: item.aesthetics || item.style || null,
+      SpaceType: item.space_type || item.room_type || null,
+    };
+    navigation.navigate('Create', { prefill: prefParams });
+  };
 
-  const displayData = activeTab === 'Your Designs' ? designs : forYouData;
-  const displayLoading = activeTab === 'Your Designs' ? loading : feedLoading;
+  const handleProjectPress = (item) => {
+    navigation.navigate('ProjectDetails', {
+      projectId: item.id,
+      projectData: item,
+    });
+  };
+
+  const renderItem = ({ item }) => {
+    if (activeTab === 'Presets') {
+      return (
+        <DesignCard
+          title={item.title}
+          image={item.image || item.image_url}
+          onPress={() => handlePresetPress(item)}
+        />
+      );
+    } else {
+      return (
+        <ProjectCard
+          project={item}
+          onPress={() => handleProjectPress(item)}
+        />
+      );
+    }
+  };
+
+  const displayData = activeTab === 'Presets' ? designs : forYouData;
+  const displayLoading = activeTab === 'Presets' ? loading : feedLoading;
 
   const handleSelectTab = (tab) => {
       setActiveTab(tab);
@@ -89,10 +119,10 @@ const HomeScreen = () => {
             >
                 <TouchableOpacity 
                     style={styles.dropdownItem} 
-                    onPress={() => handleSelectTab('Your Designs')}
+                    onPress={() => handleSelectTab('Presets')}
                 >
-                    <Text style={[styles.dropdownText, activeTab === 'Your Designs' && styles.dropdownTextActive]}>Your Designs</Text>
-                    {activeTab === 'Your Designs' && <Ionicons name="checkmark" size={20} color="#A34E5D" />}
+                    <Text style={[styles.dropdownText, activeTab === 'Presets' && styles.dropdownTextActive]}>Presets</Text>
+                    {activeTab === 'Presets' && <Ionicons name="checkmark" size={20} color="#A34E5D" />}
                 </TouchableOpacity>
                 <View style={styles.divider} />
                 <TouchableOpacity 
